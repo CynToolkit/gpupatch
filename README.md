@@ -29,6 +29,14 @@ The compiled binary will be available at `./target/release/gpupatch` (or `gpupat
 
 ## Usage
 
+### 🔥 For Standard Users (Easy Mode)
+The application includes an interactive mode designed for ease of use:
+1. **Double-click** the downloaded `gpupatch.exe` binary to launch the console window.
+2. **Drag and drop** your target game or application executable directly onto the window.
+3. Hit **Enter**. That's it! 🎉
+*(Alternatively, you can simply drag and drop an executable file directly onto the `gpupatch.exe` icon in Windows Explorer).*
+
+### 💻 For Power Users (CLI Mode)
 To force an executable to utilize the dedicated high-performance GPU:
 ```bash
 gpupatch <input.exe> [<output.exe>]

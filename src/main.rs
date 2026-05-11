@@ -48,13 +48,33 @@ fn align_to(val: u32, alignment: u32) -> u32 {
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = std::env::args().collect();
-    if args.len() < 2 {
-        println!("Usage: nvpatch-rs <inputfile> [<outputfile>] [--disable]");
-        return Ok(());
-    }
+    let mut is_interactive = false;
+    
+    let input_path = if args.len() < 2 {
+        is_interactive = true;
+        println!("╔══════════════════════════════════════════════╗");
+        println!("║            GPU Performance Patcher           ║");
+        println!("╚══════════════════════════════════════════════╝");
+        println!("\nInstructions:");
+        println!("▶ Drag & Drop a .exe file directly into this window.");
+        println!("▶ Or type the path to the executable manually.\n");
+        print!("Target File: ");
+        use std::io::Write;
+        std::io::stdout().flush()?;
+        
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input)?;
+        let trimmed = input.trim().trim_matches('\"').trim_matches('\'').to_string();
+        if trimmed.is_empty() {
+            println!("❌ Aborted: No input provided.");
+            return Ok(());
+        }
+        trimmed
+    } else {
+        args[1].clone()
+    };
 
-    let input_path = &args[1];
-    let mut output_path = input_path;
+    let mut output_path = input_path.clone();
     let mut disable = false;
     
     if args.contains(&"--disable".to_string()) {
@@ -63,16 +83,48 @@ fn main() -> Result<(), Box<dyn Error>> {
     
     for arg in args.iter().skip(2) {
         if !arg.starts_with("--") {
-            output_path = arg;
+            output_path = arg.clone();
             break;
         }
     }
 
-    let bytes = fs::read(input_path)?;
-    let patched = patch_pe(&bytes, disable, Path::new(input_path).file_name().and_then(|n| n.to_str()).unwrap_or("output.exe"))?;
+    let bytes = match fs::read(&input_path) {
+        Ok(b) => b,
+        Err(e) => {
+            println!("❌ Error reading file '{}': {}", input_path, e);
+            if is_interactive {
+                println!("\nPress Enter to exit...");
+                let mut _b = String::new();
+                std::io::stdin().read_line(&mut _b)?;
+            }
+            return Err(e.into());
+        }
+    };
     
-    fs::write(output_path, patched)?;
-    println!("Successfully patched {}", output_path);
+    let patch_result = patch_pe(
+        &bytes, 
+        disable, 
+        Path::new(&input_path).file_name().and_then(|n| n.to_str()).unwrap_or("output.exe")
+    );
+
+    match patch_result {
+        Ok(patched) => {
+            fs::write(&output_path, patched)?;
+            println!("\n✨ SUCCESS: Successfully patched -> {}", output_path);
+            println!("🚀 The executable is now forced to high-performance GPU mode.");
+        }
+        Err(e) => {
+            println!("\n❌ PATCH FAILED: {}", e);
+        }
+    }
+    
+    // Keep the console window open if was run interactively or by drag-n-dropping onto EXE icon
+    // (Windows closes the window immediately after binary completion otherwise)
+    if is_interactive || args.len() == 2 {
+        println!("\nPress Enter to close...");
+        let mut _final_input = String::new();
+        std::io::stdin().read_line(&mut _final_input)?;
+    }
     
     Ok(())
 }
