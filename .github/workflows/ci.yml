@@ -1,0 +1,82 @@
+name: Rust PE Patcher Verification
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-and-verify:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v4
+
+    - name: Setup Rust Toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+
+    - name: Install .NET Core SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+
+    - name: Build Rust Package
+      run: cargo build --release
+
+    - name: Run Embedded Rust Unit Tests
+      run: cargo test --verbose
+
+    - name: Download and Setup Original C# Tool Verification
+      run: |
+        mkdir -p verification_env
+        cd verification_env
+        curl -L https://www.nuget.org/api/v2/package/Topten.nvpatch -o nvpatch_pkg.zip
+        unzip nvpatch_pkg.zip -d tool_extracted
+        
+        # Fetch the bundled sample EXE to use as standard test file
+        cp tool_extracted/tools/net8.0/any/Topten.nvpatch.exe ./subject.exe
+        
+        # Set the Path to original tool's DLL
+        echo "TOOL_DLL=$(pwd)/tool_extracted/tools/net8.0/any/Topten.nvpatch.dll" >> $GITHUB_ENV
+
+    - name: Perform End-to-End Binary Comparison Matrix
+      working-directory: verification_env
+      run: |
+        # Prepare distinct workspace for parity test
+        cp subject.exe rust_input.exe
+        cp subject.exe cs_input.exe
+        
+        echo "--> Running Rust Implementation"
+        ../target/release/gpupatch rust_input.exe rust_output.exe
+        
+        echo "--> Running Reference C# Implementation"
+        # We pass the filename first to mirror the C# tool's argument bug correctly for parity
+        dotnet exec ${{ env.TOOL_DLL }} cs_input.exe --enable
+        mv cs_input.exe cs_output.exe
+        
+        # Normalize potential filename difference internally in the output binaries for 100% identity check
+        # Actually, by passing the exact input filenames we named, they embed custom strings.
+        # Let's use a standardized filename so the embedded string remains exactly equal!
+        
+        cp subject.exe target.exe
+        ../target/release/gpupatch target.exe final_rust.exe
+        
+        cp subject.exe target.exe
+        dotnet exec ${{ env.TOOL_DLL }} target.exe --enable
+        mv target.exe final_cs.exe
+        
+        echo "--> Validation Results:"
+        sha256sum final_rust.exe
+        sha256sum final_cs.exe
+        
+        # Perform the definitive check
+        cmp final_rust.exe final_cs.exe
+        echo "SUCCESS: Bit-for-bit compatibility achieved!"

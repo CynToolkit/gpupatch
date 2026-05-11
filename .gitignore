@@ -1,0 +1,14 @@
+/target
+csharp-original/
+nvpatch-rs/
+
+# Verification and temporary analysis files
+scratch/
+nvpatch.zip
+nvpatch_dotnet_pkg/
+
+# IDE and OS garbage
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
