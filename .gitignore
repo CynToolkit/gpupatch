@@ -12,3 +12,4 @@ nvpatch_dotnet_pkg/
 Thumbs.db
 .vscode/
 .idea/
+debug_electron
