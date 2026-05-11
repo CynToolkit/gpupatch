@@ -20,20 +20,16 @@ For standard users, bypass the command line entirely:
 
 
 ## Features
-- ⚡ **Blazing Fast**: Native Rust implementation with zero external runtime dependencies.
-- 🔬 **Ultra Reliable**: Passes 100% bitwise parity tests against reference C# implementation and performs safely even on heavyweight (100MB+) Chromium/Electron browser shells.
-- 📦 **Modern PE Handling**: Complies strictly with official PE specification regarding ordinal sorting and manifest preservation.
-- 💉 **Safe Injection**: Seamlessly injects `NvOptimusEnablement` and `AmdPowerXpressRequestHighPerformance` symbols into preexisting massive export tables.
-- 🔥 **In-Place Patching**: Intelligently toggles symbols in-place on previously patched binaries instead of expanding executable footprint.
+- ⚡ **Blazing Fast**: Native Rust implementation with no external dependencies.
+- 💉 **Safe Injection**: Seamlessly injects `NvOptimusEnablement` and `AmdPowerXpressRequestHighPerformance` symbols.
+- 🔥 **In-Place Patching**: Intelligently toggles symbols on previously patched binaries.
 
-## 💡 Key Improvements Over Original Reference
-This tool was rebuilt specifically to solve edge-cases present in original reference tooling:
-- **✅ Strict PE Compliance**: Correctly employs **Binary Ordinal Sorting** for export tables as demanded by Windows PE Specifications, ensuring safety on massive application headers (like Chromium) where reference tools rely on potentially unpredictable OS-Culture sorting.
-- **✅ Ultra Lightweight**: Compiles into a standalone sub-megabyte native binary which is drastically smaller and more memory-efficient than the original reference.
-- **✅ Native Zero-Dependency**: Operates as a 100% standalone binary, entirely bypassing the heavy .NET runtime install requirements.
-- **✅ Heuristic Antivirus Safety**: Automatically cleanses obsolete, legacy digital signature references which otherwise become corrupted upon injection, neatly forcing the final binary to an accepted "Unsigned" status rather than triggering heuristic malware traps.
-- **✅ Module Integrity Preservation**: Safely recovers and restores the internal binary metadata during patching rather than blindly overwriting internal file identifiers with command-line arguments.
-- **✅ Neophyte-Friendly Mode**: Introduces graphical Drag-and-Drop support with visual lock-screens for users unaccustomed to the Command Prompt.
+## 💡 Key Improvements Over `nvpatch`
+This tool is a from-scratch rewrite built to address edge-cases in the original [nvpatch](https://github.com/toptensoftware/nvpatch) tool:
+- ✅ **Strict PE Compliance**: Correctly implements **Binary Ordinal Sorting** and header alignment.
+- ✅ **Stand-Alone Binary**: Entirely bypasses the heavy .NET runtime install requirement.
+- ✅ **Antivirus Safe**: Cleanses corrupt digital signatures to avoid heuristic malware traps.
+- ✅ **Neophyte-Friendly**: Adds graphical drag-and-drop support with persistent lock-screens.
 
 ## Installation
 
