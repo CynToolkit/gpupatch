@@ -80,3 +80,28 @@ jobs:
         # Perform the definitive check
         cmp final_rust.exe final_cs.exe
         echo "SUCCESS: Bit-for-bit compatibility achieved!"
+
+    - name: Heavyweight Real-World Validation (Electron Browser Shell)
+      working-directory: verification_env
+      run: |
+        echo "--> Downloading standalone Electron x64 binary..."
+        curl -L https://github.com/electron/electron/releases/download/v28.2.0/electron-v28.2.0-win32-x64.zip -o electron_bin.zip
+        unzip electron_bin.zip electron.exe
+        
+        echo "--> Executing Heavyweight Binary Parity Test (electron.exe)"
+        
+        # Rust side
+        cp electron.exe target_electron.exe
+        ../target/release/gpupatch target_electron.exe rust_electron.exe
+        
+        # C# Side (Restoring target path so names match)
+        cp electron.exe target_electron.exe
+        dotnet exec ${{ env.TOOL_DLL }} target_electron.exe --enable
+        mv target_electron.exe cs_electron.exe
+        
+        echo "--> Electron Validation Finalization:"
+        sha256sum rust_electron.exe
+        sha256sum cs_electron.exe
+        
+        cmp rust_electron.exe cs_electron.exe
+        echo "EPIC SUCCESS: Deep compatibility verified on heavyweight Chromium shell!"

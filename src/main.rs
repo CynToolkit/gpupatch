@@ -553,4 +553,30 @@ mod tests {
         
         assert_eq!(p1, p2, "Deterministic patching failed");
     }
+
+    #[test]
+    fn test_inplace_repatching() {
+        let mock = create_mock_pe();
+        
+        // 1. First pass: appends the section
+        let patched_v1 = patch_pe(&mock, false, "app.exe").unwrap();
+        let pe_ptr = read_u32(&patched_v1, 0x3C) as usize;
+        let coff = pe_ptr + 4;
+        assert_eq!(read_u16(&patched_v1, coff + 2), 2, "Should have generated section");
+
+        // 2. Second pass: updates it to disabled. It must NOT add another section!
+        let patched_v2 = patch_pe(&patched_v1, true, "app.exe").unwrap();
+        let pe_ptr2 = read_u32(&patched_v2, 0x3C) as usize;
+        assert_eq!(read_u16(&patched_v2, pe_ptr2 + 6), 2, "Should have kept 2 sections (in-place edit)");
+
+        // 3. Verify it's actually disabled (value is 0)
+        // In our mock, target_val sits at the beginning of new section's raw data.
+        // The new section's raw data is appended at 1024.
+        assert_eq!(read_u32(&patched_v2, 1024), 0, "Symbol value should have been toggled to 0");
+        
+        // 4. Third pass: toggle back to enabled.
+        let patched_v3 = patch_pe(&patched_v2, false, "app.exe").unwrap();
+        assert_eq!(read_u32(&patched_v3, 1024), 1, "Symbol value should have been toggled back to 1");
+        assert_eq!(read_u16(&patched_v3, pe_ptr2 + 6), 2, "Section count remains 2");
+    }
 }
