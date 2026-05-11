@@ -204,14 +204,13 @@ fn patch_pe(input: &[u8], disable: bool, filename: &str) -> Result<Vec<u8>, Box<
     
     let symbols = ["NvOptimusEnablement", "AmdPowerXpressRequestHighPerformance"];
     let mut exports: Vec<Export> = Vec::new();
-    let mut ordinal_base = 1;
     let mut module_name = filename.to_string();
 
     if export_size > 0 {
         if let Some(export_tbl_off) = rva_to_offset(export_rva) {
             let _flags = read_u32(&data, export_tbl_off);
             let name_rva = read_u32(&data, export_tbl_off + 12);
-            ordinal_base = read_u32(&data, export_tbl_off + 16);
+            let ordinal_base = read_u32(&data, export_tbl_off + 16);
             let addr_table_entries = read_u32(&data, export_tbl_off + 20);
             let num_name_pointers = read_u32(&data, export_tbl_off + 24);
             let eat_rva = read_u32(&data, export_tbl_off + 28);
@@ -405,9 +404,9 @@ fn patch_pe(input: &[u8], disable: bool, filename: &str) -> Result<Vec<u8>, Box<
     // Apply header modifications to working copy 'data'
     write_u16(&mut data, coff_hdr + 2, num_sections + 1);
     
-    // Update SizeOfImage (Note: Original C# tool directly adds raw_size without aligning to section alignment)
-    let cur_size_img = read_u32(&data, size_of_image_offset);
-    write_u32(&mut data, size_of_image_offset, cur_size_img + new_raw_size);
+    // Update SizeOfImage (Strict PE Compliance: Must be aligned to SectionAlignment)
+    let new_size_of_image = align_to(new_v_addr + final_size as u32, sect_align);
+    write_u32(&mut data, size_of_image_offset, new_size_of_image);
     
     // Update SizeOfInitializedData in Standard Header (offset 8 from optional_hdr)
     let cur_init_size = read_u32(&data, optional_hdr + 8);
@@ -422,9 +421,15 @@ fn patch_pe(input: &[u8], disable: bool, filename: &str) -> Result<Vec<u8>, Box<
 
     // Update Export DataDirectory
     write_u32(&mut data, data_dirs_offset, new_v_addr + export_dir_tbl_pos as u32);
-    write_u32(&mut data, data_dirs_offset + 4, 40 + eat_pos as u32 - export_dir_tbl_pos as u32 + 0); // approximation or exact
-    // Wait, C# explicitly computes size
     write_u32(&mut data, data_dirs_offset + 4, final_size as u32 - export_dir_tbl_pos as u32);
+    
+    // --- ANTIVIRUS HEURISTIC SAFETY FIX ---
+    // Zero out Security Data Directory (Index 4) if present. 
+    // Modifying headers inherently invalidates digital signatures. Leaving a broken 
+    // signature pointer active guarantees triggering "Corrupt / Malicious" flags in Windows Defender.
+    // By nullifying the pointer, we cleanly convert the binary to an "Unsigned" state instead of "Tampered".
+    write_u32(&mut data, data_dirs_offset + (4 * 8), 0);     // Security Dir RVA/Offset
+    write_u32(&mut data, data_dirs_offset + (4 * 8) + 4, 0); // Security Dir Size
 
     // Actually write the header into data
     data[ins_pos..ins_pos+40].copy_from_slice(&new_hdr);

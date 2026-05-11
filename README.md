@@ -1,8 +1,23 @@
-# gpupatch 🚀
+# 🚀 gpupatch
 
-A highly optimized, dependency-free Rust engine for hot-patching Windows Portable Executable (PE) binaries to enforce high-performance discrete GPU utilization.
+<div align="center">
 
-[![Rust PE Patcher Verification](https://github.com/CynToolkit/gpupatch/actions/workflows/ci.yml/badge.svg)](https://github.com/CynToolkit/gpupatch/actions/workflows/ci.yml)
+[![Github All Releases](https://img.shields.io/github/downloads/CynToolkit/gpupatch/total.svg?style=for-the-badge&color=blue)](https://github.com/CynToolkit/gpupatch/releases)
+[![Latest Release](https://img.shields.io/github/v/release/CynToolkit/gpupatch?style=for-the-badge&color=success&label=Download%20Latest)](https://github.com/CynToolkit/gpupatch/releases/latest)
+[![Workflow Status](https://img.shields.io/github/actions/workflow/status/CynToolkit/gpupatch/ci.yml?branch=main&style=for-the-badge)](https://github.com/CynToolkit/gpupatch/actions)
+[![Rust](https://img.shields.io/badge/rust-1.75%2B-orange.svg?style=for-the-badge&logo=rust)](https://www.rust-lang.org/)
+
+**A highly optimized, dependency-free native engine for hot-patching Windows executables to force high-performance discrete GPU utilization.**
+
+---
+</div>
+
+## 📥 Direct Download (Fastest)
+For standard users, bypass the command line entirely:
+1. Click the green **[Download Latest Release](https://github.com/CynToolkit/gpupatch/releases/latest)** button above.
+2. Under **Assets**, download `gpupatch-windows-amd64.exe`.
+3. Put it on your desktop and you're ready to go!
+
 
 ## Features
 - ⚡ **Blazing Fast**: Native Rust implementation with zero external runtime dependencies.
@@ -10,6 +25,15 @@ A highly optimized, dependency-free Rust engine for hot-patching Windows Portabl
 - 📦 **Modern PE Handling**: Complies strictly with official PE specification regarding ordinal sorting and manifest preservation.
 - 💉 **Safe Injection**: Seamlessly injects `NvOptimusEnablement` and `AmdPowerXpressRequestHighPerformance` symbols into preexisting massive export tables.
 - 🔥 **In-Place Patching**: Intelligently toggles symbols in-place on previously patched binaries instead of expanding executable footprint.
+
+## 💡 Key Improvements Over Original Reference
+This tool was rebuilt specifically to solve edge-cases present in original reference tooling:
+- **✅ Strict PE Compliance**: Correctly employs **Binary Ordinal Sorting** for export tables as demanded by Windows PE Specifications, ensuring safety on massive application headers (like Chromium) where reference tools rely on potentially unpredictable OS-Culture sorting.
+- **✅ Ultra Lightweight**: Compiles into a standalone sub-megabyte native binary which is drastically smaller and more memory-efficient than the original reference.
+- **✅ Native Zero-Dependency**: Operates as a 100% standalone binary, entirely bypassing the heavy .NET runtime install requirements.
+- **✅ Heuristic Antivirus Safety**: Automatically cleanses obsolete, legacy digital signature references which otherwise become corrupted upon injection, neatly forcing the final binary to an accepted "Unsigned" status rather than triggering heuristic malware traps.
+- **✅ Module Integrity Preservation**: Safely recovers and restores the internal binary metadata during patching rather than blindly overwriting internal file identifiers with command-line arguments.
+- **✅ Neophyte-Friendly Mode**: Introduces graphical Drag-and-Drop support with visual lock-screens for users unaccustomed to the Command Prompt.
 
 ## Installation
 
