@@ -4,5 +4,8 @@ version = "0.1.1"
 edition = "2024"
 description = "A utility for patching GPU-related binaries or configurations."
 license = "FSL-1.1-MIT"
+documentation = "https://github.com/CynToolkit/gpupatch"
+homepage = "https://github.com/CynToolkit/gpupatch"
+repository = "https://github.com/CynToolkit/gpupatch"
 
 [dependencies]
