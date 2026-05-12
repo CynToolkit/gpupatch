@@ -1,8 +1,5 @@
-use std::fs;
-use std::path::Path;
-use std::error::Error;
 use std::collections::HashMap;
-// use std::io;
+use std::error::Error;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Architecture {
@@ -46,90 +43,7 @@ fn align_to(val: u32, alignment: u32) -> u32 {
     (val + alignment - 1) / alignment * alignment
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
-    let args: Vec<String> = std::env::args().collect();
-    let mut is_interactive = false;
-    
-    let input_path = if args.len() < 2 {
-        is_interactive = true;
-        println!("╔══════════════════════════════════════════════╗");
-        println!("║            GPU Performance Patcher           ║");
-        println!("╚══════════════════════════════════════════════╝");
-        println!("\nInstructions:");
-        println!("▶ Drag & Drop a .exe file directly into this window.");
-        println!("▶ Or type the path to the executable manually.\n");
-        print!("Target File: ");
-        use std::io::Write;
-        std::io::stdout().flush()?;
-        
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input)?;
-        let trimmed = input.trim().trim_matches('\"').trim_matches('\'').to_string();
-        if trimmed.is_empty() {
-            println!("❌ Aborted: No input provided.");
-            return Ok(());
-        }
-        trimmed
-    } else {
-        args[1].clone()
-    };
-
-    let mut output_path = input_path.clone();
-    let mut disable = false;
-    
-    if args.contains(&"--disable".to_string()) {
-        disable = true;
-    }
-    
-    for arg in args.iter().skip(2) {
-        if !arg.starts_with("--") {
-            output_path = arg.clone();
-            break;
-        }
-    }
-
-    let bytes = match fs::read(&input_path) {
-        Ok(b) => b,
-        Err(e) => {
-            println!("❌ Error reading file '{}': {}", input_path, e);
-            if is_interactive {
-                println!("\nPress Enter to exit...");
-                let mut _b = String::new();
-                std::io::stdin().read_line(&mut _b)?;
-            }
-            return Err(e.into());
-        }
-    };
-    
-    let patch_result = patch_pe(
-        &bytes, 
-        disable, 
-        Path::new(&input_path).file_name().and_then(|n| n.to_str()).unwrap_or("output.exe")
-    );
-
-    match patch_result {
-        Ok(patched) => {
-            fs::write(&output_path, patched)?;
-            println!("\n✨ SUCCESS: Successfully patched -> {}", output_path);
-            println!("🚀 The executable is now forced to high-performance GPU mode.");
-        }
-        Err(e) => {
-            println!("\n❌ PATCH FAILED: {}", e);
-        }
-    }
-    
-    // Keep the console window open if was run interactively or by drag-n-dropping onto EXE icon
-    // (Windows closes the window immediately after binary completion otherwise)
-    if is_interactive || args.len() == 2 {
-        println!("\nPress Enter to close...");
-        let mut _final_input = String::new();
-        std::io::stdin().read_line(&mut _final_input)?;
-    }
-    
-    Ok(())
-}
-
-fn patch_pe(input: &[u8], disable: bool, filename: &str) -> Result<Vec<u8>, Box<dyn Error>> {
+pub fn patch_pe(input: &[u8], disable: bool, filename: &str) -> Result<Vec<u8>, Box<dyn Error>> {
     let mut data = input.to_vec();
     let pe_ptr = read_u32(&data, 0x3C) as usize;
     if &data[pe_ptr..pe_ptr+4] != b"PE\0\0" {
@@ -455,7 +369,6 @@ fn patch_pe(input: &[u8], disable: bool, filename: &str) -> Result<Vec<u8>, Box<
     let added_bytes = (out.len() - start_of_added) as i64;
     
     if has_extra {
-        let _old_len = out.len();
         out.extend_from_slice(&data[pivot..]);
         // Handle .NET Bundle Manifest
         update_net_bundle_manifest(&mut out, pivot, added_bytes);
@@ -484,25 +397,15 @@ fn update_net_bundle_manifest(buf: &mut Vec<u8>, _pivot: usize, offset: i64) {
         let manifest_ptr_pos = p - 8;
         let manifest_pos = read_u64(buf, manifest_ptr_pos) as i64;
         if manifest_pos > 0 {
-            // Shift pointers that reside AFTER the manifest pointer pos?
-            // Wait, C# reads from original stream then writes back to file stream at modified position.
-            
-            // The manifest itself shifted by 'offset' because we inserted bytes at pivot.
-            // Wait, let's be precise. All data after pivot shifted by `offset`.
-            // Manifest was originally at manifest_pos. Now it is at manifest_pos + offset.
             let new_manifest_pos = manifest_pos + offset;
             write_u64(buf, manifest_ptr_pos, new_manifest_pos as u64);
             
-            // Now read the contents of the manifest at new_manifest_pos and adjust offsets inside it
             let mut cur = new_manifest_pos as usize;
-            
             let major = read_u32(buf, cur); cur += 4;
-            let _minor = read_u32(buf, cur); cur += 4;
+            cur += 4; // _minor
             let file_count = read_u32(buf, cur) as i32; cur += 4;
             
-            // skip bundle id string (length prefixed)
             fn skip_str(buf: &[u8], c: &mut usize) {
-                // it uses BinaryWriter.Write(string) which uses 7-bit encoded length
                 let mut len = 0;
                 let mut shift = 0;
                 loop {
@@ -516,13 +419,11 @@ fn update_net_bundle_manifest(buf: &mut Vec<u8>, _pivot: usize, offset: i64) {
             skip_str(buf, &mut cur);
             
             if major >= 2 {
-                // depsJsonOffset
                 let val = read_u64(buf, cur);
                 if val > 0 { write_u64(buf, cur, (val as i64 + offset) as u64); }
                 cur += 8;
                 cur += 8; // size
 
-                // runtimeConfigJsonOffset
                 let val = read_u64(buf, cur);
                 if val > 0 { write_u64(buf, cur, (val as i64 + offset) as u64); }
                 cur += 8;
@@ -532,7 +433,6 @@ fn update_net_bundle_manifest(buf: &mut Vec<u8>, _pivot: usize, offset: i64) {
             }
             
             for _ in 0..file_count {
-                // fileOffset
                 let val = read_u64(buf, cur);
                 if val > 0 { write_u64(buf, cur, (val as i64 + offset) as u64); }
                 cur += 8;
@@ -553,33 +453,30 @@ mod tests {
     use super::*;
 
     fn create_mock_pe() -> Vec<u8> {
-        // Create a minimal valid dummy PE layout to test the patcher logic.
         let mut data = vec![0u8; 1024];
         data[0] = b'M'; data[1] = b'Z';
-        write_u32(&mut data, 0x3C, 128); // pe header at 128
+        write_u32(&mut data, 0x3C, 128);
         let pe = 128;
         data[pe] = b'P'; data[pe+1] = b'E';
         
         let coff = pe + 4;
-        write_u16(&mut data, coff, 0x8664); // AMD64
-        write_u16(&mut data, coff + 2, 1); // 1 section
-        write_u16(&mut data, coff + 16, 240); // optional header size (big enough)
+        write_u16(&mut data, coff, 0x8664);
+        write_u16(&mut data, coff + 2, 1);
+        write_u16(&mut data, coff + 16, 240);
         
         let opt = coff + 20;
-        write_u16(&mut data, opt, 0x20B); // PE32+
-        write_u32(&mut data, opt + 24 + 8, 4096); // SectAlign
-        write_u32(&mut data, opt + 24 + 12, 512); // FileAlign
-        write_u32(&mut data, opt + 24 + 32, 8192); // SizeOfImage
+        write_u16(&mut data, opt, 0x20B);
+        write_u32(&mut data, opt + 24 + 8, 4096);
+        write_u32(&mut data, opt + 24 + 12, 512);
+        write_u32(&mut data, opt + 24 + 32, 8192);
         
-        // Sections start at opt + 240 = 128 + 4 + 20 + 240 = 392
         let sect = opt + 240;
         data[sect] = b'.'; data[sect+1] = b't'; data[sect+2] = b'e'; data[sect+3] = b'x'; data[sect+4] = b't';
-        write_u32(&mut data, sect+8, 100); // v_size
-        write_u32(&mut data, sect+12, 4096); // v_addr
-        write_u32(&mut data, sect+16, 512); // raw size
-        write_u32(&mut data, sect+20, 512); // raw ptr
+        write_u32(&mut data, sect+8, 100);
+        write_u32(&mut data, sect+12, 4096);
+        write_u32(&mut data, sect+16, 512);
+        write_u32(&mut data, sect+20, 512);
         
-        // Make dummy file actually 1024 bytes large
         data.resize(1024, 0);
         data
     }
@@ -589,12 +486,10 @@ mod tests {
         let mock = create_mock_pe();
         let patched = patch_pe(&mock, false, "test.exe").expect("Patch failed");
         
-        // Verify the new section exists!
         let pe_ptr = read_u32(&patched, 0x3C) as usize;
         let coff = pe_ptr + 4;
-        assert_eq!(read_u16(&patched, coff + 2), 2); // Should have 2 sections now
+        assert_eq!(read_u16(&patched, coff + 2), 2);
         
-        // Read Export directory rva
         let opt = coff + 20;
         let data_dirs = opt + 112;
         let ex_rva = read_u32(&patched, data_dirs);
@@ -603,7 +498,6 @@ mod tests {
 
     #[test]
     fn test_compare_binaries() {
-        // This acts as a test function to compare two binary buffers or files
         let mock = create_mock_pe();
         let p1 = patch_pe(&mock, false, "app.exe").unwrap();
         let p2 = patch_pe(&mock, false, "app.exe").unwrap();
@@ -615,23 +509,17 @@ mod tests {
     fn test_inplace_repatching() {
         let mock = create_mock_pe();
         
-        // 1. First pass: appends the section
         let patched_v1 = patch_pe(&mock, false, "app.exe").unwrap();
         let pe_ptr = read_u32(&patched_v1, 0x3C) as usize;
         let coff = pe_ptr + 4;
         assert_eq!(read_u16(&patched_v1, coff + 2), 2, "Should have generated section");
 
-        // 2. Second pass: updates it to disabled. It must NOT add another section!
         let patched_v2 = patch_pe(&patched_v1, true, "app.exe").unwrap();
         let pe_ptr2 = read_u32(&patched_v2, 0x3C) as usize;
         assert_eq!(read_u16(&patched_v2, pe_ptr2 + 6), 2, "Should have kept 2 sections (in-place edit)");
 
-        // 3. Verify it's actually disabled (value is 0)
-        // In our mock, target_val sits at the beginning of new section's raw data.
-        // The new section's raw data is appended at 1024.
         assert_eq!(read_u32(&patched_v2, 1024), 0, "Symbol value should have been toggled to 0");
         
-        // 4. Third pass: toggle back to enabled.
         let patched_v3 = patch_pe(&patched_v2, false, "app.exe").unwrap();
         assert_eq!(read_u32(&patched_v3, 1024), 1, "Symbol value should have been toggled back to 1");
         assert_eq!(read_u16(&patched_v3, pe_ptr2 + 6), 2, "Section count remains 2");

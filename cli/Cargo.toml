@@ -1,0 +1,14 @@
+[package]
+name = "gpupatch-cli"
+version = "0.1.3"
+edition = "2024"
+description = "A console utility for patching GPU-related binaries or configurations."
+license = "FSL-1.1-MIT"
+repository = "https://github.com/CynToolkit/gpupatch"
+
+[[bin]]
+name = "gpupatch-cli"
+path = "src/main.rs"
+
+[dependencies]
+gpupatch-core = { path = "../core" }

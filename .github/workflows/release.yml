@@ -45,23 +45,33 @@ jobs:
           target: ${{ matrix.target }}
           override: true
 
-      - name: Compile Production Binary
-        run: cargo build --release --target ${{ matrix.target }}
+      - name: Compile Production Binaries
+        run: cargo build --release --workspace --target ${{ matrix.target }}
 
       - name: Stage Assets for Upload
         shell: bash
         run: |
+          mkdir staging
+          # Define binaries
+          CLI_BIN="gpupatch"
+          GUI_BIN="companion"
+          EXT=""
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            cp target/${{ matrix.target }}/release/${{ matrix.artifact_name }} ./${{ matrix.asset_name }}
-          else
-            cp target/${{ matrix.target }}/release/${{ matrix.artifact_name }} ./${{ matrix.asset_name }}
-            chmod +x ./${{ matrix.asset_name }}
+            EXT=".exe"
+          fi
+          
+          # Copy binaries
+          cp target/${{ matrix.target }}/release/${CLI_BIN}${EXT} ./staging/${CLI_BIN}-${{ matrix.target }}${EXT}
+          cp target/${{ matrix.target }}/release/${GUI_BIN}${EXT} ./staging/${GUI_BIN}-${{ matrix.target }}${EXT}
+          
+          if [ "${{ matrix.os }}" != "windows-latest" ]; then
+            chmod +x ./staging/*
           fi
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            ${{ matrix.asset_name }}
+            ./staging/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
