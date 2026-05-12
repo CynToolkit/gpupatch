@@ -46,24 +46,29 @@ jobs:
           override: true
 
       - name: Compile Production Binaries
-        run: cargo build --release --workspace --target ${{ matrix.target }}
+        run: |
+          cargo build --release --workspace --target ${{ matrix.target }}
+          cd node-module && npm install && npm run build
 
       - name: Stage Assets for Upload
         shell: bash
         run: |
           mkdir staging
           # Define binaries
-          CLI_BIN="gpupatch-cli"
-          GUI_BIN="gpupatch-gui"
+          CLI_BIN="gpupatch"
+          GUI_BIN="companion"
           EXT=""
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
             EXT=".exe"
           fi
-          
+
           # Copy binaries
           cp target/${{ matrix.target }}/release/${CLI_BIN}${EXT} ./staging/${CLI_BIN}-${{ matrix.target }}${EXT}
           cp target/${{ matrix.target }}/release/${GUI_BIN}${EXT} ./staging/${GUI_BIN}-${{ matrix.target }}${EXT}
-          
+
+          # Copy Node module
+          cp node-module/*.node ./staging/gpupatch-node-${{ matrix.target }}.node
+
           if [ "${{ matrix.os }}" != "windows-latest" ]; then
             chmod +x ./staging/*
           fi
