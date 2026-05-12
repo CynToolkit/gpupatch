@@ -1,8 +1,16 @@
 {
-  "name": "gpupatch-node",
+  "name": "@cyntoolkit/gpupatch",
   "version": "0.1.0",
+  "description": "Node.js bindings for GPUPatch core",
   "main": "index.js",
   "types": "index.d.ts",
+  "author": "CynToolkit",
+  "license": "MIT",
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "*.node"
+  ],
   "devDependencies": {
     "@napi-rs/cli": "^3.0.0"
   },
