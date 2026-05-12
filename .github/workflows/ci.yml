@@ -55,7 +55,7 @@ jobs:
         cp subject.exe cs_input.exe
         
         echo "--> Running Rust Implementation"
-        ../target/release/gpupatch rust_input.exe rust_output.exe
+        ../target/release/gpupatch-cli rust_input.exe rust_output.exe
         
         echo "--> Running Reference C# Implementation"
         # We pass the filename first to mirror the C# tool's argument bug correctly for parity
@@ -67,7 +67,7 @@ jobs:
         # Let's use a standardized filename so the embedded string remains exactly equal!
         
         cp subject.exe target.exe
-        ../target/release/gpupatch target.exe final_rust.exe
+        ../target/release/gpupatch-cli target.exe final_rust.exe
         
         cp subject.exe target.exe
         dotnet exec ${{ env.TOOL_DLL }} target.exe --enable
@@ -91,7 +91,7 @@ jobs:
         
         # Rust side
         cp electron.exe target_electron.exe
-        ../target/release/gpupatch target_electron.exe rust_electron.exe
+        ../target/release/gpupatch-cli target_electron.exe rust_electron.exe
         
         # C# Side (Restoring target path so names match)
         cp electron.exe target_electron.exe

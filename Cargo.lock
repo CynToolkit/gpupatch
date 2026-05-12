@@ -1408,18 +1408,18 @@ dependencies = [
 
 [[package]]
 name = "gpupatch-cli"
-version = "0.1.3"
+version = "0.2.1"
 dependencies = [
  "gpupatch-core",
 ]
 
 [[package]]
 name = "gpupatch-core"
-version = "0.1.3"
+version = "0.2.1"
 
 [[package]]
 name = "gpupatch-gui"
-version = "0.1.0"
+version = "0.2.1"
 dependencies = [
  "eframe",
  "egui",

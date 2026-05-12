@@ -1,6 +1,6 @@
 [package]
 name = "gpupatch-core"
-version = "0.1.3"
+version = "0.2.1"
 edition = "2024"
 description = "A utility library for patching GPU-related binaries or configurations."
 license = "FSL-1.1-MIT"

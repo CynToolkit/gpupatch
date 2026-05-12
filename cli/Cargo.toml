@@ -1,6 +1,6 @@
 [package]
 name = "gpupatch-cli"
-version = "0.1.3"
+version = "0.2.1"
 edition = "2024"
 description = "A console utility for patching GPU-related binaries or configurations."
 license = "FSL-1.1-MIT"
