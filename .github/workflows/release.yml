@@ -55,17 +55,16 @@ jobs:
         run: |
           mkdir staging
           # Define binaries
-          CLI_BIN="gpupatch"
-          GUI_BIN="companion"
+          CLI_BIN="gpupatch-cli"
+          GUI_BIN="gpupatch-gui"
           EXT=""
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
             EXT=".exe"
           fi
 
           # Copy binaries
-          cp target/${{ matrix.target }}/release/${CLI_BIN}${EXT} ./staging/${CLI_BIN}-${{ matrix.target }}${EXT}
-          cp target/${{ matrix.target }}/release/${GUI_BIN}${EXT} ./staging/${GUI_BIN}-${{ matrix.target }}${EXT}
-
+          cp target/${{ matrix.target }}/release/gpupatch${EXT} ./staging/${CLI_BIN}-${{ matrix.target }}${EXT}
+          cp target/${{ matrix.target }}/release/companion${EXT} ./staging/${GUI_BIN}-${{ matrix.target }}${EXT}
           # Copy Node module
           cp node-module/*.node ./staging/gpupatch-node-${{ matrix.target }}.node
 
