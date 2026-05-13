@@ -23,6 +23,7 @@ For standard users, bypass the command line entirely:
 - ⚡ **Blazing Fast**: Native Rust implementation with no external dependencies.
 - 💉 **Safe Injection**: Seamlessly injects `NvOptimusEnablement` and `AmdPowerXpressRequestHighPerformance` symbols.
 - 🔥 **In-Place Patching**: Intelligently toggles symbols on previously patched binaries.
+- 🖥️ **Built-in GUI**: Includes a native graphical interface for easy management.
 
 ## 💡 Key Improvements Over `nvpatch`
 This tool is a from-scratch rewrite built to address edge-cases in the original [nvpatch](https://github.com/toptensoftware/nvpatch) tool:
